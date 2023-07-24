@@ -15,7 +15,7 @@ client_credits: List[Credit] = []
 transactions_credits: List[TransactionsCredits] = []
 debits: List[Debit] = []
 transactions_debits: List[TransactionsDebits] = []
-processed_debits = List[ProcessedDebit] = []
+processed_debits: List[ProcessedDebit] = []
 
 
 @app.post(f"/{PERFORM_ADVANCE}")
@@ -79,3 +79,4 @@ def get_processed_debits():
 def insert_processed_debit(debit: Debit):
     processed_debit = ProcessedDebit(id=debit.id)
     processed_debits.append(processed_debit)
+

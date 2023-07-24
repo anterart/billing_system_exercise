@@ -1,3 +1,8 @@
+"""
+A wrapper for processor blackbox in order to test the code
+"""
+
+
 from uuid import uuid4
 from models import ReportRow
 import requests

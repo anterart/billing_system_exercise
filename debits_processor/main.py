@@ -37,10 +37,16 @@ def get_processed_debits():
 
 
 def get_successful_credits_ids(report):
+    if len(report) == 0:
+        return pd.DataFrame()
+
     successful_transactions = report[report.is_successful]
     transactions_credits = get_transactions_credits()
     successful_credit_ids = successful_transactions.merge(transactions_credits, on='transaction_id').credit_id.tolist()
     stored_credits = get_credits()
+    if len(stored_credits) == 0:
+        return pd.DataFrame()
+
     successful_credits = stored_credits[stored_credits.id.isin(successful_credit_ids)]
     return successful_credits
 
@@ -64,6 +70,9 @@ def create_debits_from_credits(credits_):
 
 
 def get_old_debit_ids(transaction_debits, current_datetime):
+    if len(transaction_debits) == 0:
+        return set()
+
     transaction_debits.creation_datetime = pd.to_datetime(transaction_debits.creation_datetime)
     datetime_limit = current_datetime - timedelta(days=REPORT_TRANSACTIONS_TIME_WINDOW_DAYS)
     df_filtered = transaction_debits[transaction_debits.creation_datetime < datetime_limit]
@@ -73,9 +82,20 @@ def get_old_debit_ids(transaction_debits, current_datetime):
 def get_timed_out_debits(report, current_datetime, debits, transactions_debits):
     old_debit_ids = get_old_debit_ids(transactions_debits, current_datetime)
     processed_transactions = get_processed_debits()
-    processed_debits_ids = set(processed_transactions.id.tolist())
-    reported_debits_ids = set(report.merge(transactions_debits, on='transaction_id').debit_id.tolist())
+    if len(processed_transactions) > 0:
+        processed_debits_ids = set(processed_transactions.id.tolist())
+    else:
+        processed_debits_ids = set()
+
+    if len(report) == 0 or len(transactions_debits) == 0:
+        reported_debits_ids = set()
+    else:
+        reported_debits_ids = set(report.merge(transactions_debits, on='transaction_id').debit_id.tolist())
     timed_out_debit_ids = old_debit_ids - processed_debits_ids - reported_debits_ids
+
+    if len(timed_out_debit_ids) == 0:
+        return pd.DataFrame()
+
     timed_out_debits = debits[debits.id.isin(timed_out_debit_ids)]
     return timed_out_debits
 
@@ -87,6 +107,10 @@ def get_credits_last_due(debits):
 
 def create_new_debits_from_timed_out_debits(report, current_datetime, debits, transactions_debits):
     timed_out_debits = get_timed_out_debits(report, current_datetime, debits, transactions_debits)
+
+    if len(timed_out_debits) == 0:
+        return
+
     credits_ids_last_due = get_credits_last_due(debits)
     timed_out_debits = timed_out_debits.merge(credits_ids_last_due, on='credit_id')
     timed_out_debits.due = pd.to_datetime(timed_out_debits.last_due)
@@ -112,10 +136,12 @@ def perform_debit_transactions(debits, processed_debits, current_datetime):
     """
     Call processor to perform transaction for all debits with due_time before current_datetime and dont appear in
      processed_debits
+    :param current_datetime:
     :param debits:
     :param processed_debits:
     :return:
     """
+
 
 def main():
     current_datetime = datetime.now()
@@ -127,7 +153,7 @@ def main():
     create_debits_from_credits(credits_without_debits)
     create_new_debits_from_timed_out_debits(report, current_datetime, debits, transactions_debits)
 
-    print()
+    # TODO: Finish implementation....
 
 
 if __name__ == "__main__":
